@@ -554,11 +554,11 @@ async fn register(
         .await
         .unwrap_or(0);
 
-    let role = if user_count == 0 {
-        "admin".to_string()
-    } else {
-        payload.role.unwrap_or_else(|| "viewer".to_string())
-    };
+    if user_count > 0 {
+        return Err((StatusCode::FORBIDDEN, "Registration closed — an admin already exists"));
+    }
+
+    let role = "admin".to_string();
 
     let hashed = hash_password(&payload.password);
 
