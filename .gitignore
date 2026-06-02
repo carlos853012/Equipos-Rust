@@ -1,6 +1,9 @@
 /target/
-crates/server/data/pgdata/
+/target/wix/
+crates/server/data/
+crates/viewer/data/
 crates/server/.env
+.crypto_key
 *.swp
 *.swo
 *~

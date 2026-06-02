@@ -95,7 +95,7 @@ async fn main() -> anyhow::Result<()> {
                 .nest(
                     "/users",
                     Router::new()
-                        .route("/", get(get_users))
+                        .route("/", get(get_users).post(create_user))
                         .route("/:id", put(update_user_role).delete(delete_user))
                         .route_layer(axum::middleware::from_fn(require_admin))
                 )
@@ -612,6 +612,36 @@ async fn register(
     .fetch_one(&state.pool)
     .await
     .map_err(|_| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed to create user"))?;
+
+    Ok(Json(user))
+}
+
+async fn create_user(
+    State(state): State<AppState>,
+    Json(payload): Json<RegisterRequest>,
+) -> Result<Json<User>, (StatusCode, &'static str)> {
+    let existing = sqlx::query_scalar::<_, bool>("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)")
+        .bind(&payload.username)
+        .fetch_one(&state.pool)
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?;
+
+    if existing {
+        return Err((StatusCode::BAD_REQUEST, "Username already exists"));
+    }
+
+    let role = payload.role.unwrap_or_else(|| "viewer".to_string());
+    let hashed = hash_password(&payload.password);
+
+    let user = sqlx::query_as::<_, User>(
+        "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) RETURNING *"
+    )
+    .bind(&payload.username)
+    .bind(&hashed)
+    .bind(&role)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to create user"))?;
 
     Ok(Json(user))
 }

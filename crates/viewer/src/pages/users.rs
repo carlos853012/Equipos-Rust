@@ -46,9 +46,11 @@ pub fn UserManagement() -> Element {
         }
 
         let config = server_config.read().clone();
+        let token = auth.read().token.clone();
         spawn(async move {
             let client = reqwest::Client::new();
-            let res = client.post(config.api_url("/register"))
+            let res = client.post(config.api_url("/api/users"))
+                .header("Authorization", format!("Bearer {}", token.as_deref().unwrap_or("")))
                 .json(&serde_json::json!({
                     "username": user,
                     "password": pwd,

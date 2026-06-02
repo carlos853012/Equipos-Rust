@@ -53,6 +53,10 @@ crates\server\data\pgdata\
 # Conectarse a la base (mientras el server corre)
 & "C:\Users\carlos\.theseus\postgresql\18.3.0\bin\psql.exe" -h localhost -U postgres -d equipos_redes
 
+# Verificar que las credenciales están cifradas en DB
+& "C:\Users\carlos\.theseus\postgresql\18.3.0\bin\psql.exe" -h localhost -U postgres -d equipos_redes -c "SELECT id, ip_address, LEFT(clave_windows, 40) AS clave_hex FROM equipos WHERE clave_windows IS NOT NULL;"
+# Si está cifrado, clave_hex se ve como: 1a2b3c4d... (hexadecimal)
+
 # Limpiar datos corruptos (detener server primero)
 Remove-Item -Recurse -Force "%LOCALAPPDATA%\EquiposIndustriales\data\pgdata"
 ```
@@ -69,7 +73,9 @@ New-NetFirewallRule -DisplayName "ICMP Allow" -Protocol ICMPv4 -IcmpType 8 -Enab
 
 ## Autostart (registro de Windows)
 
-El server gestiona esta entrada automáticamente desde el menú del tray:
+El server gestiona esta entrada desde el menú contextual del tray icon
+(vía `winreg`). Al hacer clic en "Autostart" se escribe o elimina la
+entrada en `HKCU\...\Run` y se marca/desmarca visualmente el ✓.
 
 ```powershell
 # Verificar entrada actual
@@ -80,6 +86,24 @@ Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" 
 
 # Agregar manualmente
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "EquiposIndustrialesServer" -Value "C:\Program Files\EquiposIndustriales\bin\server.exe"
+```
+
+## Pruebas de seguridad
+
+```powershell
+# Ejecutar suite completa de seguridad (requiere server corriendo)
+PowerShell -ExecutionPolicy Bypass -File test_seguridad.ps1
+
+# Tests incluidos:
+# 1. Health check
+# 2. Login como admin
+# 3. POST /register bloqueado (403 si ya hay usuarios)
+# 4. GET /api/users sin auth (401)
+# 5. Login como viewer
+# 6. GET /api/users como viewer (403)
+# 7. Crear equipo con credenciales (API devuelve descifrado)
+# 8. DB almacena cifrado (AES-256-GCM)
+# 9. Auditoría redacta credenciales ([CIFRADO])
 ```
 
 ## Directorios importantes
@@ -93,6 +117,9 @@ C:\Users\carlos\Desktop\Equipos-Rust\crates\server\data\pgdata\
 
 # Datos de PostgreSQL (producción)
 %LOCALAPPDATA%\EquiposIndustriales\data\pgdata\
+
+# Llave de cifrado AES-256-GCM (auto-generada, no compartir)
+%LOCALAPPDATA%\EquiposIndustriales\data\.crypto_key
 
 # Configuración del viewer
 %LOCALAPPDATA%\EquiposIndustriales\viewer_storage\

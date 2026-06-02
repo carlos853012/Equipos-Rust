@@ -107,8 +107,9 @@ cargo run -p server
 
 En producción se instala como aplicación de escritorio (sin terminal).
 Aparece un ícono en la bandeja del sistema:
-- **Clic derecho** → menú contextual (autostart, salir)
-- **Autostart** → agrega/remueve entrada en `HKCU\...\Run`
+- **Clic derecho** → menú contextual en la posición del cursor
+- **Autostart** → toggle visual (✓) que agrega/remueve `HKCU\...\Run`
+- **Salir del Servidor** → envía señal de apagado graceful a Axum
 
 ### Iniciar viewer
 
@@ -120,24 +121,25 @@ Ventana de 1280×800. Sin menú contextual (deshabilitado).
 
 ## API REST (server)
 
-| Método | Ruta                    | Auth     | Descripción                     |
-|--------|-------------------------|----------|---------------------------------|
-| GET    | `/`                     | No       | Health check                    |
-| GET    | `/auth/status`          | No       | ¿Hay usuarios registrados?      |
-| POST   | `/login`                | No       | Iniciar sesión → JWT            |
-| POST   | `/register`             | No       | Registrar primer admin          |
-| GET    | `/api/equipos`          | JWT      | Listar equipos (filtro por ?q=) |
-| POST   | `/api/equipos`          | JWT      | Crear equipo                    |
-| GET    | `/api/equipos/:id`      | JWT      | Detalle equipo                  |
-| PUT    | `/api/equipos/:id`      | JWT      | Actualizar equipo               |
-| DELETE | `/api/equipos/:id`      | JWT      | Eliminar equipo                 |
-| POST   | `/api/import`           | JWT      | Importar Excel (.xlsx)          |
-| GET    | `/api/scan`             | JWT      | Escanear red (ping)             |
-| GET    | `/api/audit`            | JWT      | Auditoría global                |
-| GET    | `/api/audit/:ip`        | JWT      | Auditoría por equipo            |
-| GET    | `/api/users`            | JWT      | Listar usuarios (solo admin)    |
-| PUT    | `/api/users/:id`        | JWT      | Cambiar rol (solo admin)        |
-| DELETE | `/api/users/:id`        | JWT      | Eliminar usuario (solo admin)   |
+| Método | Ruta                    | Auth     | Descripción                                    |
+|--------|-------------------------|----------|-------------------------------------------------|
+| GET    | `/`                     | No       | Health check                                   |
+| GET    | `/auth/status`          | No       | ¿Hay usuarios registrados?                     |
+| POST   | `/login`                | No       | Iniciar sesión → JWT                           |
+| POST   | `/register`             | No       | Solo primer admin (403 si ya hay usuarios) ⚠️  |
+| GET    | `/api/equipos`          | JWT      | Listar equipos (filtro por ?q=)                |
+| POST   | `/api/equipos`          | JWT      | Crear equipo                                   |
+| GET    | `/api/equipos/:id`      | JWT      | Detalle equipo                                 |
+| PUT    | `/api/equipos/:id`      | JWT      | Actualizar equipo                              |
+| DELETE | `/api/equipos/:id`      | JWT      | Eliminar equipo                                |
+| POST   | `/api/import`           | JWT      | Importar Excel (.xlsx)                         |
+| GET    | `/api/scan`             | JWT      | Escanear red (ping)                            |
+| GET    | `/api/audit`            | JWT      | Auditoría global                               |
+| GET    | `/api/audit/:ip`        | JWT      | Auditoría por equipo                           |
+| GET    | `/api/users`            | JWT+Admin| Listar usuarios                                |
+| POST   | `/api/users`            | JWT+Admin| Crear usuario (viewer/editor/admin)            |
+| PUT    | `/api/users/:id`        | JWT+Admin| Cambiar rol                                    |
+| DELETE | `/api/users/:id`        | JWT+Admin| Eliminar usuario                               |
 
 ## Construir MSIs
 
@@ -157,21 +159,37 @@ Los MSIs se generan en `target/wix/`.
 
 ```
 %LOCALAPPDATA%\EquiposIndustriales\
-├── data\pgdata\          -- Datos de PostgreSQL
+├── data\
+│   ├── pgdata\           -- Datos de PostgreSQL
+│   └── .crypto_key       -- Llave AES-256-GCM (auto-generada)
 └── viewer_storage\       -- Configuración del viewer
 ```
 
-## Notas de seguridad
+## Seguridad
 
-- Las contraseñas se almacenan con **Argon2id** (server) y se transmiten
-  por HTTPS si se configura un proxy reverso.
-- Los JWTs expiran a las **24 horas**.
-- El server corre en `0.0.0.0:3000` (accesible desde la red local).
-  Para producción restringir con firewall o proxy.
-- El `.env` con `JWT_SECRET` debe protegerse. El valor por defecto
-  (`your-secret-key-change-in-production`) no es seguro.
-- Credenciales de VNC/Windows de equipos se almacenan en texto plano en
-  la base de datos (visible en logs de auditoría).
+### Controles implementados
+
+| Control | Estado | Detalle |
+|---------|--------|---------|
+| Contraseñas con Argon2id | ✅ | Hash de contraseñas de usuarios |
+| Cifrado AES-256-GCM | ✅ | `clave_windows` y `clave_vnc` cifrados en DB, descifrados en API |
+| Redacción en auditoría | ✅ | Credenciales se muestran como `[CIFRADO]` en logs de auditoría |
+| Bloqueo de `POST /register` | ✅ | Solo permite crear el primer admin (403 si ya hay usuarios) |
+| Roles y middleware | ✅ | Admin requerido para `GET/POST/PUT/DELETE /api/users/*` |
+| Autenticación JWT | ✅ | Expira a las 24h |
+| Llave de cifrado auto-generada | ✅ | Se crea en `%LOCALAPPDATA%\EquiposIndustriales\data\.crypto_key` |
+
+### Riesgos conocidos
+
+- **JWT_SECRET hardcodeado**: si no se define `JWT_SECRET` en entorno, usa
+  `your-secret-key-change-in-production`
+- **CORS permisivo**: actualmente `AllowOrigin::Any`
+- **Bind a `0.0.0.0:3000`**: accesible desde toda la LAN, no hay firewall
+  interno configurado
+- **Sin TLS**: el tráfico viaja en texto plano; usar proxy reverso (nginx,
+  Caddy) en producción
+- **Sin logging a archivo**: toda salida va a stdout (solo visible en
+  terminal de debug)
 
 ## Licencia
 

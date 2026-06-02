@@ -68,7 +68,7 @@ pub fn EquipoList() -> Element {
                         if !*is_scanning_all.read() { "Scan All" }
                     }
                     section { class: "relative",
-                        span { class: "absolute left-4 top-1/2 -translate-y-1/2 text-slate-400", "🔍" }
+                        span { class: "absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" }
                         input {
                             class: "pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl w-full md:w-80 font-bold outline-none focus:ring-2 ring-indigo-500/20 shadow-sm",
                             placeholder: "Buscar por IP o Nombre...",
