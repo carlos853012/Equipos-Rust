@@ -1,0 +1,10 @@
+{
+  "name": "equipos-viewer",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./index.css -o ./compiled.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

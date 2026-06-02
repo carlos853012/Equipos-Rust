@@ -1,0 +1,10 @@
+pub mod home;
+pub mod login;
+pub mod setup;
+pub mod equipo_list;
+pub mod equipo_detail;
+pub mod equipo_new;
+pub mod equipo_edit;
+pub mod import;
+pub mod audit;
+pub mod users;

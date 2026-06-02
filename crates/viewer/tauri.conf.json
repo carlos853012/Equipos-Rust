@@ -1,0 +1,34 @@
+{
+  "productName": "Equipos Industriales",
+  "version": "1.0.0",
+  "identifier": "com.equipos-industrias.viewer",
+  "build": {
+    "beforeDevCommand": "",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "",
+    "frontendDist": "../../../../frontend/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Gestión de Equipos Industriales - Viewer",
+        "width": 1280,
+        "height": 800
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

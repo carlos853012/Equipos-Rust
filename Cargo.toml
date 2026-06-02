@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "crates/server",
+    "crates/viewer",
+    "crates/common"
+]
+resolver = "2"
+
+# Forzamos la configuración global de tray-icon para que en este workspace 
+# no busque bajo ningún concepto inicializar cosas de GTK/Linux.
+[workspace.dependencies]
+tray-icon = { version = "0.7", default-features = false, features = [] }

@@ -1,0 +1,8 @@
+/target/
+crates/server/data/pgdata/
+crates/server/.env
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

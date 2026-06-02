@@ -1,0 +1,36 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+authors = ["Carlos Donoso"]
+
+[dependencies]
+common = { path = "../common" }
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono"] }
+dotenvy = "0.15"
+postgresql_embedded = { version = "0.20", features = ["bundled"] }
+anyhow = "1.0"
+dirs = "6.0"
+surge-ping = "0.8"
+futures = "0.3"
+serde_json = "1.0"
+bcrypt = "0.13"
+jsonwebtoken = "8.3"
+once_cell = "1.18"
+chrono = { version = "0.4", features = ["serde"] }
+argon2 = "0.5.3"
+tower-http = { version = "0.6.11", features = ["cors", "limit"] }
+calamine = "0.24"
+
+# Configuración estricta de dependencias exclusivas para Windows
+[target.'cfg(windows)'.dependencies]
+native-windows-gui = "1.0"
+image = "0.25"
+winapi = { version = "0.3", features = ["winuser"] }
+winreg = "0.52"
+
+[build-dependencies]
+winresource = "0.1"

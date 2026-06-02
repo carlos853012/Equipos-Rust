@@ -1,0 +1,268 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<?if $(sys.BUILDARCH) = x64 or $(sys.BUILDARCH) = arm64 ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+    <Product
+        Id='*'
+        Name='Equipos Industriales Server'
+        UpgradeCode='484F1962-9C9C-430D-8B2F-7A29D347AF4C'
+        Manufacturer='Carlos Donoso'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Manufacturer='Carlos Donoso'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallScope='perMachine'
+            SummaryCodepage='1252'/>
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
+        <Property Id='DiskPrompt' Value='Equipos Industriales Server Installation'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
+                <Directory Id='APPLICATIONFOLDER' Name='EquiposIndustriales'>
+
+                    <!-- Binario principal del server -->
+                    <Directory Id='Bin' Name='bin'>
+                        <Component Id='binary0' Guid='A1B2C3D4-E5F6-7890-ABCD-EF1234567890'>
+                            <File Id='exe0' Name='server.exe' DiskId='1'
+                                  Source='$(var.CargoTargetBinDir)\server.exe'
+                                  KeyPath='yes'/>
+                        </Component>
+                    </Directory>
+
+                    <!-- Binarios de PostgreSQL embebido -->
+                    <Directory Id='TheseusPgDir' Name='.theseus'>
+                        <Directory Id='TheseusPgPostgresql' Name='postgresql'>
+                            <Directory Id='TheseusPgVersion' Name='18.3.0'>
+                                <Directory Id='PgBinDir' Name='bin'>
+                                    <Component Id='CmpInitdb' Guid='B0000001-0000-0000-0000-000000000001'>
+                                        <File Id='FileInitdb' Name='initdb.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\initdb.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPostgres' Guid='B0000001-0000-0000-0000-000000000002'>
+                                        <File Id='FilePostgres' Name='postgres.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\postgres.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgCtl' Guid='B0000001-0000-0000-0000-000000000003'>
+                                        <File Id='FilePgCtl' Name='pg_ctl.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_ctl.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPsql' Guid='B0000001-0000-0000-0000-000000000004'>
+                                        <File Id='FilePsql' Name='psql.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\psql.exe'/>
+                                    </Component>
+                                    <Component Id='CmpCreatedb' Guid='B0000001-0000-0000-0000-000000000005'>
+                                        <File Id='FileCreatedb' Name='createdb.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\createdb.exe'/>
+                                    </Component>
+                                    <Component Id='CmpDropdb' Guid='B0000001-0000-0000-0000-000000000006'>
+                                        <File Id='FileDropdb' Name='dropdb.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\dropdb.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgDump' Guid='B0000001-0000-0000-0000-000000000007'>
+                                        <File Id='FilePgDump' Name='pg_dump.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_dump.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgRestore' Guid='B0000001-0000-0000-0000-000000000008'>
+                                        <File Id='FilePgRestore' Name='pg_restore.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_restore.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgIsready' Guid='B0000001-0000-0000-0000-000000000009'>
+                                        <File Id='FilePgIsready' Name='pg_isready.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_isready.exe'/>
+                                    </Component>
+                                    <Component Id='CmpClusterdb' Guid='B0000001-0000-0000-0000-000000000010'>
+                                        <File Id='FileClusterdb' Name='clusterdb.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\clusterdb.exe'/>
+                                    </Component>
+                                    <Component Id='CmpCreateuser' Guid='B0000001-0000-0000-0000-000000000011'>
+                                        <File Id='FileCreateuser' Name='createuser.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\createuser.exe'/>
+                                    </Component>
+                                    <Component Id='CmpDropuser' Guid='B0000001-0000-0000-0000-000000000012'>
+                                        <File Id='FileDropuser' Name='dropuser.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\dropuser.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgConfig' Guid='B0000001-0000-0000-0000-000000000013'>
+                                        <File Id='FilePgConfig' Name='pg_config.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_config.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgControldata' Guid='B0000001-0000-0000-0000-000000000014'>
+                                        <File Id='FilePgControldata' Name='pg_controldata.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_controldata.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgDumpall' Guid='B0000001-0000-0000-0000-000000000015'>
+                                        <File Id='FilePgDumpall' Name='pg_dumpall.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_dumpall.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgResetwal' Guid='B0000001-0000-0000-0000-000000000016'>
+                                        <File Id='FilePgResetwal' Name='pg_resetwal.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_resetwal.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgUpgrade' Guid='B0000001-0000-0000-0000-000000000017'>
+                                        <File Id='FilePgUpgrade' Name='pg_upgrade.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_upgrade.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgWaldump' Guid='B0000001-0000-0000-0000-000000000018'>
+                                        <File Id='FilePgWaldump' Name='pg_waldump.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_waldump.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgRewind' Guid='B0000001-0000-0000-0000-000000000019'>
+                                        <File Id='FilePgRewind' Name='pg_rewind.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_rewind.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgBasebackup' Guid='B0000001-0000-0000-0000-000000000020'>
+                                        <File Id='FilePgBasebackup' Name='pg_basebackup.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_basebackup.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgChecksums' Guid='B0000001-0000-0000-0000-000000000021'>
+                                        <File Id='FilePgChecksums' Name='pg_checksums.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_checksums.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgVerifybackup' Guid='B0000001-0000-0000-0000-000000000022'>
+                                        <File Id='FilePgVerifybackup' Name='pg_verifybackup.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_verifybackup.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgReceivewal' Guid='B0000001-0000-0000-0000-000000000023'>
+                                        <File Id='FilePgReceivewal' Name='pg_receivewal.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_receivewal.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgRecvlogical' Guid='B0000001-0000-0000-0000-000000000024'>
+                                        <File Id='FilePgRecvlogical' Name='pg_recvlogical.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_recvlogical.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgAmcheck' Guid='B0000001-0000-0000-0000-000000000025'>
+                                        <File Id='FilePgAmcheck' Name='pg_amcheck.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_amcheck.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgArchivecleanup' Guid='B0000001-0000-0000-0000-000000000026'>
+                                        <File Id='FilePgArchivecleanup' Name='pg_archivecleanup.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_archivecleanup.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgCombinebackup' Guid='B0000001-0000-0000-0000-000000000027'>
+                                        <File Id='FilePgCombinebackup' Name='pg_combinebackup.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_combinebackup.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgCreatesubscriber' Guid='B0000001-0000-0000-0000-000000000028'>
+                                        <File Id='FilePgCreatesubscriber' Name='pg_createsubscriber.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_createsubscriber.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgWalsummary' Guid='B0000001-0000-0000-0000-000000000029'>
+                                        <File Id='FilePgWalsummary' Name='pg_walsummary.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_walsummary.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgTestFsync' Guid='B0000001-0000-0000-0000-000000000030'>
+                                        <File Id='FilePgTestFsync' Name='pg_test_fsync.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_test_fsync.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgTestTiming' Guid='B0000001-0000-0000-0000-000000000031'>
+                                        <File Id='FilePgTestTiming' Name='pg_test_timing.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pg_test_timing.exe'/>
+                                    </Component>
+                                    <Component Id='CmpEcpg' Guid='B0000001-0000-0000-0000-000000000032'>
+                                        <File Id='FileEcpg' Name='ecpg.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\ecpg.exe'/>
+                                    </Component>
+                                    <Component Id='CmpVacuumdb' Guid='B0000001-0000-0000-0000-000000000033'>
+                                        <File Id='FileVacuumdb' Name='vacuumdb.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\vacuumdb.exe'/>
+                                    </Component>
+                                    <Component Id='CmpVacuumlo' Guid='B0000001-0000-0000-0000-000000000034'>
+                                        <File Id='FileVacuumlo' Name='vacuumlo.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\vacuumlo.exe'/>
+                                    </Component>
+                                    <Component Id='CmpReindexdb' Guid='B0000001-0000-0000-0000-000000000035'>
+                                        <File Id='FileReindexdb' Name='reindexdb.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\reindexdb.exe'/>
+                                    </Component>
+                                    <Component Id='CmpOid2name' Guid='B0000001-0000-0000-0000-000000000036'>
+                                        <File Id='FileOid2name' Name='oid2name.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\oid2name.exe'/>
+                                    </Component>
+                                    <Component Id='CmpPgbench' Guid='B0000001-0000-0000-0000-000000000037'>
+                                        <File Id='FilePgbench' Name='pgbench.exe' DiskId='1' KeyPath='yes' Source='C:\Users\carlos\.theseus\postgresql\18.3.0\bin\pgbench.exe'/>
+                                    </Component>
+                                </Directory>
+                            </Directory>
+                        </Directory>
+                    </Directory>
+
+                </Directory>
+            </Directory>
+
+            <!-- Menú inicio -->
+            <Directory Id='ProgramMenuFolder'>
+                <Directory Id='ApplicationProgramsFolder' Name='Equipos Industriales'/>
+            </Directory>
+
+            <!-- Escritorio -->
+            <Directory Id='DesktopFolder' Name='Desktop'/>
+        </Directory>
+
+        <!-- Acceso directo en menú inicio -->
+        <DirectoryRef Id='ApplicationProgramsFolder'>
+            <Component Id='AppShortcutMenu' Guid='C0000001-0000-0000-0000-000000000001'>
+                <Shortcut Id='StartMenuShortcut'
+                    Name='Equipos Industriales Server'
+                    Description='Inicia el servidor de Equipos Industriales'
+                    Target='[Bin]server.exe'
+                    WorkingDirectory='Bin'/>
+                <RemoveFolder Id='CleanUpStartMenu' Directory='ApplicationProgramsFolder' On='uninstall'/>
+                <RegistryValue Root='HKCU' Key='Software\EquiposIndustriales\Server' Name='installed' Type='integer' Value='1' KeyPath='yes'/>
+            </Component>
+        </DirectoryRef>
+
+        <!-- Acceso directo en escritorio -->
+        <DirectoryRef Id='DesktopFolder'>
+            <Component Id='AppShortcutDesktop' Guid='C0000001-0000-0000-0000-000000000002'>
+                <Shortcut Id='DesktopShortcut'
+                    Name='Equipos Industriales Server'
+                    Description='Inicia el servidor de Equipos Industriales'
+                    Target='[Bin]server.exe'
+                    WorkingDirectory='Bin'/>
+                <RegistryValue Root='HKCU' Key='Software\EquiposIndustriales\Server' Name='desktop' Type='integer' Value='1' KeyPath='yes'/>
+            </Component>
+        </DirectoryRef>
+
+        <Feature
+            Id='Binaries'
+            Title='Application'
+            Description='Instala el servidor y la base de datos embebida.'
+            Level='1'
+            ConfigurableDirectory='APPLICATIONFOLDER'
+            AllowAdvertise='no'
+            Display='expand'
+            Absent='disallow'>
+
+            <ComponentRef Id='binary0'/>
+            <ComponentRef Id='AppShortcutMenu'/>
+            <ComponentRef Id='AppShortcutDesktop'/>
+            <ComponentRef Id='CmpInitdb'/>
+            <ComponentRef Id='CmpPostgres'/>
+            <ComponentRef Id='CmpPgCtl'/>
+            <ComponentRef Id='CmpPsql'/>
+            <ComponentRef Id='CmpCreatedb'/>
+            <ComponentRef Id='CmpDropdb'/>
+            <ComponentRef Id='CmpPgDump'/>
+            <ComponentRef Id='CmpPgRestore'/>
+            <ComponentRef Id='CmpPgIsready'/>
+            <ComponentRef Id='CmpClusterdb'/>
+            <ComponentRef Id='CmpCreateuser'/>
+            <ComponentRef Id='CmpDropuser'/>
+            <ComponentRef Id='CmpPgConfig'/>
+            <ComponentRef Id='CmpPgControldata'/>
+            <ComponentRef Id='CmpPgDumpall'/>
+            <ComponentRef Id='CmpPgResetwal'/>
+            <ComponentRef Id='CmpPgUpgrade'/>
+            <ComponentRef Id='CmpPgWaldump'/>
+            <ComponentRef Id='CmpPgRewind'/>
+            <ComponentRef Id='CmpPgBasebackup'/>
+            <ComponentRef Id='CmpPgChecksums'/>
+            <ComponentRef Id='CmpPgVerifybackup'/>
+            <ComponentRef Id='CmpPgReceivewal'/>
+            <ComponentRef Id='CmpPgRecvlogical'/>
+            <ComponentRef Id='CmpPgAmcheck'/>
+            <ComponentRef Id='CmpPgArchivecleanup'/>
+            <ComponentRef Id='CmpPgCombinebackup'/>
+            <ComponentRef Id='CmpPgCreatesubscriber'/>
+            <ComponentRef Id='CmpPgWalsummary'/>
+            <ComponentRef Id='CmpPgTestFsync'/>
+            <ComponentRef Id='CmpPgTestTiming'/>
+            <ComponentRef Id='CmpEcpg'/>
+            <ComponentRef Id='CmpVacuumdb'/>
+            <ComponentRef Id='CmpVacuumlo'/>
+            <ComponentRef Id='CmpReindexdb'/>
+            <ComponentRef Id='CmpOid2name'/>
+            <ComponentRef Id='CmpPgbench'/>
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+
+        <UI>
+            <UIRef Id='WixUI_FeatureTree'/>
+            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='99'>1</Publish>
+            <Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='99'>1</Publish>
+        </UI>
+
+    </Product>
+
+</Wix>
