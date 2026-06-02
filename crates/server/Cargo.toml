@@ -24,6 +24,8 @@ chrono = { version = "0.4", features = ["serde"] }
 argon2 = "0.5.3"
 tower-http = { version = "0.6.11", features = ["cors", "limit"] }
 calamine = "0.24"
+aes-gcm = "0.10"
+rand = "0.8"
 
 # Configuración estricta de dependencias exclusivas para Windows
 [target.'cfg(windows)'.dependencies]

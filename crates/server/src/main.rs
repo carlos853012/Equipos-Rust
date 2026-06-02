@@ -23,6 +23,7 @@ mod db_manager;
 mod network_scanner;
 mod audit;
 mod auth;
+mod crypto;
 mod excel_import;
 
 #[cfg(target_os = "windows")]
@@ -45,12 +46,13 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(target_os = "windows")]
     let splash_handle = std::thread::spawn(move || splash::show(ready_rx));
 
-    let data_dir = dirs::data_local_dir()
+    let app_root = dirs::data_local_dir()
         .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")))
         .join("EquiposIndustriales")
-        .join("data")
-        .join("pgdata");
+        .join("data");
+    let data_dir = app_root.join("pgdata");
     std::fs::create_dir_all(&data_dir).ok();
+    crypto::init(&app_root);
 
     println!("[INFO] Usando base de datos en: {:?}", data_dir);
 
@@ -230,11 +232,15 @@ async fn get_equipos(State(state): State<AppState>, _filter: Option<Query<Equipo
 
     query.push(" ORDER BY id ASC");
 
-    let equipos = query
+    let mut equipos = query
         .build_query_as::<Equipo>()
         .fetch_all(&state.pool)
         .await
         .unwrap_or_default();
+    for e in &mut equipos {
+        e.clave_windows = crypto::decrypt_opt(&e.clave_windows);
+        e.clave_vnc = crypto::decrypt_opt(&e.clave_vnc);
+    }
     Json(equipos)
 }
 
@@ -298,16 +304,22 @@ async fn ensure_schema(pool: &PgPool) -> anyhow::Result<()> {
 }
 
 async fn get_equipo(State(state): State<AppState>, Path(id): Path<i32>) -> Json<Option<Equipo>> {
-    let equipo = sqlx::query_as::<_, Equipo>("SELECT * FROM equipos WHERE id = $1")
+    let mut equipo = sqlx::query_as::<_, Equipo>("SELECT * FROM equipos WHERE id = $1")
         .bind(id)
         .fetch_optional(&state.pool)
         .await
         .unwrap_or_default();
+    if let Some(ref mut e) = equipo {
+        e.clave_windows = crypto::decrypt_opt(&e.clave_windows);
+        e.clave_vnc = crypto::decrypt_opt(&e.clave_vnc);
+    }
     Json(equipo)
 }
 
 async fn create_equipo(State(state): State<AppState>, Json(payload): Json<Equipo>) -> Json<Option<Equipo>> {
     println!("[DEBUG] Recibida solicitud CREATE para IP: {}", payload.ip_address);
+    let clave_windows = crypto::encrypt_opt(&payload.clave_windows);
+    let clave_vnc = crypto::encrypt_opt(&payload.clave_vnc);
     let res = sqlx::query_as::<_, Equipo>(
         "INSERT INTO equipos (
             ip_address, nombre_pc, grupo, area, descripcion, ubicacion, tipo,
@@ -331,8 +343,8 @@ async fn create_equipo(State(state): State<AppState>, Json(payload): Json<Equipo
     .bind(&payload.tipo)
     .bind(&payload.sistema_operativo)
     .bind(&payload.usuario_windows)
-    .bind(&payload.clave_windows)
-    .bind(&payload.clave_vnc)
+    .bind(&clave_windows)
+    .bind(&clave_vnc)
     .bind(&payload.observaciones)
     .bind(&payload.tipo_dispositivo)
     .bind(&payload.ubicacion_tecnica)
@@ -373,6 +385,8 @@ async fn update_equipo(State(state): State<AppState>, Path(id): Path<i32>, Json(
         Ok(None) | Err(_) => return Json(None),
     };
 
+    let clave_windows = crypto::encrypt_opt(&payload.clave_windows);
+    let clave_vnc = crypto::encrypt_opt(&payload.clave_vnc);
     let res = sqlx::query_as::<_, Equipo>(
         "UPDATE equipos SET
             ip_address = $1,
@@ -406,8 +420,8 @@ async fn update_equipo(State(state): State<AppState>, Path(id): Path<i32>, Json(
     .bind(&payload.tipo)
     .bind(&payload.sistema_operativo)
     .bind(&payload.usuario_windows)
-    .bind(&payload.clave_windows)
-    .bind(&payload.clave_vnc)
+    .bind(&clave_windows)
+    .bind(&clave_vnc)
     .bind(&payload.observaciones)
     .bind(&payload.tipo_dispositivo)
     .bind(&payload.ubicacion_tecnica)

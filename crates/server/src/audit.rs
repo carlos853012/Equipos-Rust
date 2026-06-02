@@ -37,6 +37,8 @@ pub async fn log_change(
     Ok(())
 }
 
+const SENSITIVE_FIELDS: [&str; 3] = ["clave_windows", "clave_vnc", "usuario_windows"];
+
 /// Compara dos objetos JSON y devuelve solo los campos que cambiaron.
 fn calculate_diff(antes: &Value, despues: &Value) -> (Value, Value) {
     let mut map_a = Map::new();
@@ -45,11 +47,17 @@ fn calculate_diff(antes: &Value, despues: &Value) -> (Value, Value) {
     if let (Some(obj_a), Some(obj_d)) = (antes.as_object(), despues.as_object()) {
         for (k, v_d) in obj_d {
             let v_a = obj_a.get(k).unwrap_or(&Value::Null);
-            
-            // Si los valores son diferentes, los guardamos en el diff
+
             if v_a != v_d {
-                // Filtramos campos ruidosos (metadatos de sistema que cambian siempre)
-                if k != "updated_at" && k != "fecha_modificacion" && k != "created_at" {
+                // Metadatos de sistema que no aportan al diff
+                if k == "updated_at" || k == "fecha_modificacion" || k == "created_at" {
+                    continue;
+                }
+                // Campos sensibles: guardamos marca de redacción en vez del valor real
+                if SENSITIVE_FIELDS.contains(&k.as_str()) {
+                    map_a.insert(k.clone(), Value::String("[CIFRADO]".to_string()));
+                    map_d.insert(k.clone(), Value::String("[CIFRADO]".to_string()));
+                } else {
                     map_a.insert(k.clone(), v_a.clone());
                     map_d.insert(k.clone(), v_d.clone());
                 }
