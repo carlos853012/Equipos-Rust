@@ -11,12 +11,14 @@ pub async fn log_change(
     despues: Option<Value>,
     usuario: Option<&str>,
 ) -> Result<()> {
-    // Implementación de Lógica de Diff Nativa (Fase 2)
-    // Solo guardamos las diferencias reales para optimizar espacio y legibilidad
     let (diff_antes, diff_despues) = match (antes, despues) {
         (Some(a), Some(d)) => {
             let (final_a, final_d) = calculate_diff(&a, &d);
             (Some(final_a), Some(final_d))
+        },
+        (None, Some(d)) => {
+            let redacted = redact_sensitive(d);
+            (None, Some(redacted))
         },
         (a, d) => (a, d),
     };
@@ -38,6 +40,17 @@ pub async fn log_change(
 }
 
 const SENSITIVE_FIELDS: [&str; 3] = ["clave_windows", "clave_vnc", "usuario_windows"];
+
+fn redact_sensitive(mut value: Value) -> Value {
+    if let Some(obj) = value.as_object_mut() {
+        for k in SENSITIVE_FIELDS {
+            if obj.contains_key(k) {
+                obj.insert(k.to_string(), Value::String("[CIFRADO]".to_string()));
+            }
+        }
+    }
+    value
+}
 
 /// Compara dos objetos JSON y devuelve solo los campos que cambiaron.
 fn calculate_diff(antes: &Value, despues: &Value) -> (Value, Value) {

@@ -354,15 +354,18 @@ async fn create_equipo(State(state): State<AppState>, Json(payload): Json<Equipo
     .fetch_one(&state.pool).await;
 
     match res {
-        Ok(e) => {
+        Ok(mut e) => {
             println!("[DEBUG] Equipo creado ID: {:?}", e.id);
+            let despues_val = serde_json::to_value(&e).ok();
+            e.clave_windows = crypto::decrypt_opt(&e.clave_windows);
+            e.clave_vnc = crypto::decrypt_opt(&e.clave_vnc);
             let _ = audit::log_change(
                 &state.pool,
                 e.id,
                 &e.ip_address,
                 "create",
                 None,
-                serde_json::to_value(&e).ok(),
+                despues_val,
                 payload.modificado_por.as_deref().or(payload.modificado_por_username.as_deref()).or(Some("system")),
             ).await;
             Json(Some(e))
@@ -433,15 +436,18 @@ async fn update_equipo(State(state): State<AppState>, Path(id): Path<i32>, Json(
     .await;
 
     match res {
-        Ok(updated) => {
+        Ok(mut updated) => {
             println!("[DEBUG] Equipo ID {} actualizado", id);
+            let despues_val = serde_json::to_value(&updated).ok();
+            updated.clave_windows = crypto::decrypt_opt(&updated.clave_windows);
+            updated.clave_vnc = crypto::decrypt_opt(&updated.clave_vnc);
             let _ = audit::log_change(
                 &state.pool,
                 updated.id,
                 &updated.ip_address,
                 "update",
                 serde_json::to_value(&before).ok(),
-                serde_json::to_value(&updated).ok(),
+                despues_val,
                 payload.modificado_por.as_deref().or(payload.modificado_por_username.as_deref()).or(Some("system")),
             ).await;
             Json(Some(updated))
