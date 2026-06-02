@@ -12,7 +12,7 @@ use argon2::{
     Argon2
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,  // subject (username)
     pub exp: usize,   // expiration time

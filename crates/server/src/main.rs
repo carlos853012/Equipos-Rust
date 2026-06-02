@@ -16,7 +16,7 @@ use tokio::signal;
 use tokio::sync::oneshot;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
-use crate::auth::{validate_jwt, create_jwt, hash_password, verify_password};
+use crate::auth::{validate_jwt, create_jwt, hash_password, verify_password, Claims};
 use tower_http::cors::{Any, CorsLayer};
 
 mod db_manager;
@@ -90,8 +90,13 @@ async fn main() -> anyhow::Result<()> {
                 .route("/scan", get(scan_network))
                 .route("/audit", get(get_all_audit_logs))
                 .route("/audit/:ip", get(get_audit_log))
-                .route("/users", get(get_users))
-                .route("/users/:id", put(update_user_role).delete(delete_user))
+                .nest(
+                    "/users",
+                    Router::new()
+                        .route("/", get(get_users))
+                        .route("/:id", put(update_user_role).delete(delete_user))
+                        .route_layer(axum::middleware::from_fn(require_admin))
+                )
                 .route_layer(axum::middleware::from_fn_with_state(state.clone(), authenticate_middleware))
         )
         .layer(cors)
@@ -146,7 +151,7 @@ struct EquipoFilter {
 
 async fn authenticate_middleware(
     State(_state): State<AppState>,
-    req: Request<Body>,
+    mut req: Request<Body>,
     next: Next,
 ) -> Result<Response<Body>, (StatusCode, &'static str)> {
     let auth_header = req
@@ -158,7 +163,8 @@ async fn authenticate_middleware(
         if auth_header.starts_with("Bearer ") {
             let token = &auth_header[7..];
             match validate_jwt(token) {
-                Ok(_) => {
+                Ok(claims) => {
+                    req.extensions_mut().insert(claims);
                     return Ok(next.run(req).await);
                 }
                 Err(_) => {
@@ -169,6 +175,21 @@ async fn authenticate_middleware(
     }
 
     Err((StatusCode::UNAUTHORIZED, "Missing or invalid Authorization header"))
+}
+
+async fn require_admin(
+    req: Request<Body>,
+    next: Next,
+) -> Result<Response<Body>, (StatusCode, &'static str)> {
+    let role = req
+        .extensions()
+        .get::<Claims>()
+        .map(|c| c.role.as_str());
+
+    match role {
+        Some("admin") => Ok(next.run(req).await),
+        _ => Err((StatusCode::FORBIDDEN, "Se requiere rol admin")),
+    }
 }
 
 async fn get_equipos(State(state): State<AppState>, _filter: Option<Query<EquipoFilter>>) -> Json<Vec<Equipo>> {
