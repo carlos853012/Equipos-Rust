@@ -58,10 +58,12 @@ pub fn EquipoDetail(id: i32) -> Element {
                                     h2 { class: "text-4xl font-black tracking-tighter mb-2", "{e.nombre_pc.as_deref().unwrap_or(\"SIN NOMBRE\")}" }
                                     p { class: "font-mono text-indigo-400 text-lg font-bold tracking-widest", "{e.ip_address}" }
                                 }
-                                Link {
-                                    to: Route::EquipoEdit { id: e.id.unwrap_or(0) },
-                                    class: "bg-white text-slate-900 px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-50 transition-all shadow-lg",
-                                    "Editar Ficha"
+                                if auth.read().user.as_ref().map(|u| u.role.as_str()) != Some("viewer") {
+                                    Link {
+                                        to: Route::EquipoEdit { id: e.id.unwrap_or(0) },
+                                        class: "bg-white text-slate-900 px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-50 transition-all shadow-lg",
+                                        "Editar Ficha"
+                                    }
                                 }
                             }
                         }

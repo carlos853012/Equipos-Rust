@@ -10,6 +10,10 @@ pub fn EquipoList() -> Element {
     let mut scan_results = use_signal(|| std::collections::HashMap::<String, bool>::new());
     let mut is_scanning_all = use_signal(|| false);
 
+    let role = auth.read().user.as_ref().map(|u| u.role.clone()).unwrap_or_default();
+    let is_viewer = role == "viewer";
+    let is_editor_or_admin = role == "editor" || role == "admin";
+
     let equipos = use_resource(move || {
         let token = auth.read().token.clone().unwrap_or_default();
         let search_val = search.read().clone();
@@ -68,7 +72,7 @@ pub fn EquipoList() -> Element {
                         if !*is_scanning_all.read() { "Scan All" }
                     }
                     section { class: "relative",
-                        span { class: "absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" }
+                        span { class: "absolute left-4 top-1/2 -translate-y-1/2 text-slate-400", "🔍" }
                         input {
                             class: "pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl w-full md:w-80 font-bold outline-none focus:ring-2 ring-indigo-500/20 shadow-sm",
                             placeholder: "Buscar por IP o Nombre...",
@@ -76,9 +80,11 @@ pub fn EquipoList() -> Element {
                             oninput: move |evt| search.set(evt.value())
                         }
                     }
-                    Link { to: Route::EquipoNew {}, class: "bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2",
-                        span { "➕" }
-                        "Nuevo"
+                    if is_editor_or_admin {
+                        Link { to: Route::EquipoNew {}, class: "bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2",
+                            span { "➕" }
+                            "Nuevo"
+                        }
                     }
                 }
             }
@@ -185,7 +191,9 @@ pub fn EquipoList() -> Element {
                                                     }
                                                 }
                                                 Link { to: Route::EquipoDetail { id: e.id.unwrap_or(0) }, class: "inline-flex items-center gap-2 text-slate-600 px-4 py-2 rounded-full font-black uppercase tracking-[0.15em] text-[9px] hover:bg-green-100 hover:text-green-600 transition-all", "Ver" }
-                                                Link { to: Route::EquipoEdit { id: e.id.unwrap_or(0) }, class: "inline-flex items-center gap-2 text-slate-600 px-4 py-2 rounded-full font-black uppercase tracking-[0.15em] text-[9px] hover:bg-green-100 hover:text-green-600 transition-all", "Editar" }
+                                                if !is_viewer {
+                                                    Link { to: Route::EquipoEdit { id: e.id.unwrap_or(0) }, class: "inline-flex items-center gap-2 text-slate-600 px-4 py-2 rounded-full font-black uppercase tracking-[0.15em] text-[9px] hover:bg-indigo-100 hover:text-indigo-600 transition-all", "Editar" }
+                                                }
                                             }
                                         }
                                     }

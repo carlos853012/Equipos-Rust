@@ -144,6 +144,7 @@ async fn ensure_schema(pool: &PgPool) -> anyhow::Result<()> {
             username VARCHAR(255) UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             role VARCHAR(50) DEFAULT 'viewer',
+            area VARCHAR(255),
             created_at TIMESTAMPTZ DEFAULT NOW()
         )"
     ).execute(pool).await?;

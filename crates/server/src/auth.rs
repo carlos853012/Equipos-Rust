@@ -14,9 +14,11 @@ use argon2::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,  // subject (username)
-    pub exp: usize,   // expiration time
-    pub role: String, // user role
+    pub sub: String,           // subject (username)
+    pub exp: usize,            // expiration time
+    pub role: String,          // user role
+    pub area: Option<String>,  // área asignada (None = admin global o viewer sin área)
+    pub user_id: i32,          // id del usuario para validaciones
 }
 
 static SECRET_KEY: Lazy<String> = Lazy::new(|| {
@@ -33,6 +35,8 @@ pub fn create_jwt(user: &User) -> String {
         sub: user.username.clone(),
         exp: expiration as usize,
         role: user.role.clone(),
+        area: user.area.clone(),
+        user_id: user.id,
     };
 
     encode(

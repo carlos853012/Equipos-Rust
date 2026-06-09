@@ -13,8 +13,15 @@ use crate::audit;
 
 pub async fn import_excel(
     State(state): State<AppState>,
+    axum::Extension(claims): axum::Extension<crate::auth::Claims>,
     mut multipart: Multipart,
 ) -> Result<Json<ImportSummary>, (StatusCode, String)> {
+    if claims.role == "viewer" {
+        return Err((StatusCode::FORBIDDEN, "Los viewers no pueden importar equipos".to_string()));
+    }
+    if claims.area.is_none() && claims.role != "admin" {
+        return Err((StatusCode::FORBIDDEN, "Debes tener un área asignada para importar".to_string()));
+    }
     let mut data = None;
 
     while let Some(field) = multipart.next_field().await.map_err(|e| {
@@ -61,12 +68,20 @@ pub async fn import_excel(
                     continue; // Skip rows without IP
                 }
 
+                let area_forzada = if claims.role == "admin" && claims.area.is_none() {
+                    // Admin global: respeta el área del Excel
+                    Some(get_row_string(row, 1)).filter(|s| !s.is_empty())
+                } else {
+                    // Admin/editor de área: fuerza su área
+                    claims.area.clone()
+                };
+
                 let equipo = Equipo {
                     id: None,
                     ip_address: ip_address.clone(),
                     nombre_pc: Some(get_row_string(row, 6)),
                     grupo: Some(get_row_string(row, 0)),
-                    area: Some(get_row_string(row, 1)),
+                    area: area_forzada,
                     descripcion: Some(get_row_string(row, 2)),
                     ubicacion: Some(get_row_string(row, 3)),
                     tipo: Some(get_row_string(row, 4)),

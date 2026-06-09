@@ -10,9 +10,13 @@ pub fn UserManagement() -> Element {
     let mut new_username = use_signal(|| "".to_string());
     let mut new_password = use_signal(|| "".to_string());
     let mut new_role = use_signal(|| "viewer".to_string());
+    let mut new_area = use_signal(|| "".to_string());
+    let mut new_area_custom = use_signal(|| "".to_string());
 
     let mut editing_user = use_signal(|| None::<common::User>);
     let mut edit_role = use_signal(|| "viewer".to_string());
+    let mut edit_area = use_signal(|| "".to_string());
+    let mut edit_area_custom = use_signal(|| "".to_string());
 
     let mut deleting_user = use_signal(|| None::<common::User>);
 
@@ -39,6 +43,15 @@ pub fn UserManagement() -> Element {
         let user = new_username.read().to_string();
         let pwd = new_password.read().to_string();
         let r = new_role.read().to_string();
+        let area_val = new_area.read().to_string();
+        let area_custom = new_area_custom.read().to_string();
+        let area_final = if area_val == "NUEVO" {
+            if area_custom.trim().is_empty() { None } else { Some(area_custom.trim().to_string()) }
+        } else if area_val.is_empty() {
+            None
+        } else {
+            Some(area_val)
+        };
 
         if user.is_empty() || pwd.is_empty() {
             error_msg.set(Some("El usuario y la contraseña no pueden estar vacíos".to_string()));
@@ -49,12 +62,13 @@ pub fn UserManagement() -> Element {
         let token = auth.read().token.clone();
         spawn(async move {
             let client = reqwest::Client::new();
-            let res = client.post(config.api_url("/api/users"))
+            let res = client.post(config.api_url("/register"))
                 .header("Authorization", format!("Bearer {}", token.as_deref().unwrap_or("")))
                 .json(&serde_json::json!({
                     "username": user,
                     "password": pwd,
-                    "role": r
+                    "role": r,
+                    "area": area_final
                 }))
                 .send()
                 .await;
@@ -65,6 +79,8 @@ pub fn UserManagement() -> Element {
                     new_username.set("".to_string());
                     new_password.set("".to_string());
                     new_role.set("viewer".to_string());
+                    new_area.set("".to_string());
+                    new_area_custom.set("".to_string());
                     error_msg.set(None);
                     users_res.restart();
                 }
@@ -83,6 +99,15 @@ pub fn UserManagement() -> Element {
         let token = auth.read().token.clone();
         let user_to_edit = editing_user.read().clone();
         let r = edit_role.read().to_string();
+        let area_val = edit_area.read().to_string();
+        let area_custom = edit_area_custom.read().to_string();
+        let area_final = if area_val == "NUEVO" {
+            if area_custom.trim().is_empty() { None } else { Some(area_custom.trim().to_string()) }
+        } else if area_val.is_empty() {
+            None
+        } else {
+            Some(area_val)
+        };
 
         if let Some(user) = user_to_edit {
             let config = server_config.read().clone();
@@ -91,7 +116,8 @@ pub fn UserManagement() -> Element {
                 let res = client.put(config.api_url(&format!("/api/users/{}", user.id)))
                     .header("Authorization", format!("Bearer {}", token.as_deref().unwrap_or("")))
                     .json(&serde_json::json!({
-                        "role": r
+                        "role": r,
+                        "area": area_final
                     }))
                     .send()
                     .await;
@@ -99,6 +125,7 @@ pub fn UserManagement() -> Element {
                 match res {
                     Ok(resp) if resp.status().is_success() => {
                         editing_user.set(None);
+                        edit_area_custom.set("".to_string());
                         error_msg.set(None);
                         users_res.restart();
                     }
@@ -165,6 +192,8 @@ pub fn UserManagement() -> Element {
                         new_username.set("".to_string());
                         new_password.set("".to_string());
                         new_role.set("viewer".to_string());
+                        new_area.set("".to_string());
+                        new_area_custom.set("".to_string());
                         error_msg.set(None);
                         show_create_modal.set(true);
                     },
@@ -179,6 +208,7 @@ pub fn UserManagement() -> Element {
                             th { class: "px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest", "ID" }
                             th { class: "px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest", "Nombre de Usuario" }
                             th { class: "px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest", "Rol Actual" }
+                            th { class: "px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest", "Área" }
                             th { class: "px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest", "Fecha Registro" }
                             th { class: "px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right", "Acciones" }
                         }
@@ -195,6 +225,13 @@ pub fn UserManagement() -> Element {
                                             td { class: "px-6 py-4",
                                                 span { class: "bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider", "{u.role}" }
                                             }
+                                            td { class: "px-6 py-4",
+                                                if let Some(ref area) = u.area {
+                                                    span { class: "bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-slate-200", "{area}" }
+                                                } else {
+                                                    span { class: "text-slate-300 text-[10px] font-bold italic", "Sin área" }
+                                                }
+                                            }
                                             td { class: "px-6 py-4 text-xs font-bold text-slate-500",
                                                 "{u.created_at.map(|f| f.format(\"%d/%m/%Y\").to_string()).unwrap_or_default()}"
                                             }
@@ -206,6 +243,8 @@ pub fn UserManagement() -> Element {
                                                             class: "p-2 bg-slate-100 rounded-lg text-slate-600 hover:bg-indigo-100 hover:text-indigo-600 transition-colors",
                                                             onclick: move |_| {
                                                                 edit_role.set(u_edit.role.clone());
+                                                                edit_area.set(u_edit.area.clone().unwrap_or_default());
+                                                                edit_area_custom.set("".to_string());
                                                                 editing_user.set(Some(u_edit.clone()));
                                                             },
                                                             "✏️"
@@ -274,6 +313,35 @@ pub fn UserManagement() -> Element {
                                     option { value: "admin", "Administrador" }
                                 }
                             }
+                            section { class: "space-y-2",
+                                label { class: "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1", "Área" }
+                                select {
+                                    class: "w-full bg-slate-50 border border-slate-200 rounded-[0.5rem] px-5 py-4 font-bold outline-none focus:border-indigo-500 transition-all",
+                                    value: "{new_area}",
+                                    onchange: move |evt| {
+                                        new_area.set(evt.value());
+                                        if evt.value() != "NUEVO" {
+                                            new_area_custom.set("".to_string());
+                                        }
+                                    },
+                                    option { value: "", "— Sin área —" }
+                                    option { value: "SUB6", "SUB6" }
+                                    option { value: "SUB5", "SUB5" }
+                                    option { value: "TTE7", "TTE7" }
+                                    option { value: "TTE8", "TTE8" }
+                                    option { value: "TTE6", "TTE6" }
+                                    option { value: "DIABLO", "DIABLO" }
+                                    option { value: "NUEVO", "➕ Crear nuevo..." }
+                                }
+                                if *new_area.read() == "NUEVO" {
+                                    input {
+                                        class: "w-full bg-white border border-indigo-300 rounded-[0.5rem] px-5 py-3 font-bold outline-none focus:border-indigo-500 transition-all mt-2 text-sm",
+                                        placeholder: "Nombre del nuevo área...",
+                                        value: "{new_area_custom}",
+                                        oninput: move |evt| new_area_custom.set(evt.value())
+                                    }
+                                }
+                            }
                         }
                         footer { class: "bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100",
                             button {
@@ -325,6 +393,35 @@ pub fn UserManagement() -> Element {
                                     option { value: "viewer", "Visualizador" }
                                     option { value: "editor", "Editor" }
                                     option { value: "admin", "Administrador" }
+                                }
+                            }
+                            section { class: "space-y-2",
+                                label { class: "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1", "Área" }
+                                select {
+                                    class: "w-full bg-slate-50 border border-slate-200 rounded-[0.5rem] px-5 py-4 font-bold outline-none focus:border-indigo-500 transition-all",
+                                    value: "{edit_area}",
+                                    onchange: move |evt| {
+                                        edit_area.set(evt.value());
+                                        if evt.value() != "NUEVO" {
+                                            edit_area_custom.set("".to_string());
+                                        }
+                                    },
+                                    option { value: "", "— Sin área —" }
+                                    option { value: "SUB6", "SUB6" }
+                                    option { value: "SUB5", "SUB5" }
+                                    option { value: "TTE7", "TTE7" }
+                                    option { value: "TTE8", "TTE8" }
+                                    option { value: "TTE6", "TTE6" }
+                                    option { value: "DIABLO", "DIABLO" }
+                                    option { value: "NUEVO", "➕ Crear nuevo..." }
+                                }
+                                if *edit_area.read() == "NUEVO" {
+                                    input {
+                                        class: "w-full bg-white border border-indigo-300 rounded-[0.5rem] px-5 py-3 font-bold outline-none focus:border-indigo-500 transition-all mt-2 text-sm",
+                                        placeholder: "Nombre del nuevo área...",
+                                        value: "{edit_area_custom}",
+                                        oninput: move |evt| edit_area_custom.set(evt.value())
+                                    }
                                 }
                             }
                         }

@@ -43,6 +43,7 @@ pub struct User {
     pub username: String,
     pub password_hash: String,
     pub role: String, // 'admin', 'editor', 'viewer'
+    pub area: Option<String>, // 'SUB6', 'SUB5', 'TTE7', 'TTE8', 'TTE6', 'DIABLO', o personalizada
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
