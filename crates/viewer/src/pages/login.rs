@@ -37,9 +37,14 @@ pub fn Login() -> Element {
                 Ok(response) if response.status().is_success() => {
                     if let Ok(data) = response.json::<serde_json::Value>().await {
                         let token = data["token"].as_str().unwrap_or("").to_string();
-                        let user = serde_json::from_value::<User>(data["user"].clone()).unwrap();
-                        *auth.write() = AuthState { token: Some(token), user: Some(user) };
-                        nav.push(Route::Home {});
+                        if let Ok(user) = serde_json::from_value::<User>(data["user"].clone()) {
+                            *auth.write() = AuthState { token: Some(token), user: Some(user) };
+                            nav.push(Route::Home {});
+                        } else {
+                            error.set(Some("Error de compatibilidad con los datos de usuario".to_string()));
+                        }
+                    } else {
+                        error.set(Some("Respuesta del servidor no legible".to_string()));
                     }
                 }
                 _ => {

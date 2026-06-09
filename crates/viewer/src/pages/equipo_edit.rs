@@ -13,10 +13,14 @@ pub fn EquipoEdit(id: i32) -> Element {
         let config = server_config.read().clone();
         async move {
             let client = reqwest::Client::new();
-            client.get(config.api_url(&format!("/api/equipos/{}", id)))
+            if let Ok(res) = client.get(config.api_url(&format!("/api/equipos/{}", id)))
                 .header("Authorization", format!("Bearer {}", token))
-                .send().await.unwrap()
-                .json::<Option<Equipo>>().await.unwrap_or_default()
+                .send().await
+            {
+                res.json::<Option<Equipo>>().await.unwrap_or_default()
+            } else {
+                None
+            }
         }
     });
 

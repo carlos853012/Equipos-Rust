@@ -79,3 +79,28 @@ fn decode_hex(s: &str) -> Option<Vec<u8>> {
         .map(|i| u8::from_str_radix(&s[i..i + 2], 16).ok())
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hex_encoding() {
+        let bytes = b"hello";
+        let hex = encode_hex(bytes);
+        assert_eq!(hex, "68656c6c6f");
+        let decoded = decode_hex(&hex).unwrap();
+        assert_eq!(decoded, bytes);
+    }
+
+    #[test]
+    fn test_encryption_decryption() {
+        let temp_dir = std::env::temp_dir();
+        init(&temp_dir);
+        let secret = "SuperSecretPassword123!";
+        let encrypted = encrypt(secret);
+        assert_ne!(secret, encrypted);
+        let decrypted = decrypt(&encrypted).unwrap();
+        assert_eq!(secret, decrypted);
+    }
+}

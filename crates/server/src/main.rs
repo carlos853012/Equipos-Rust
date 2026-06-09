@@ -199,6 +199,11 @@ fn is_global_admin(claims: &Claims) -> bool {
     claims.role == "admin" && claims.area.is_none()
 }
 
+/// Helper: determina si una dirección IP tiene un formato válido (IPv4 o IPv6)
+pub fn is_valid_ip(ip: &str) -> bool {
+    ip.trim().parse::<std::net::IpAddr>().is_ok()
+}
+
 /// Helper: determina si el usuario puede acceder a un equipo de cierta área
 fn can_access_area(claims: &Claims, equipo_area: &Option<String>) -> bool {
     if is_global_admin(claims) {
@@ -377,6 +382,11 @@ async fn create_equipo(
         payload.area = claims.area.clone();
     }
 
+    // Validar formato de IP
+    if !is_valid_ip(&payload.ip_address) {
+        return Err((StatusCode::BAD_REQUEST, "Formato de dirección IP inválido"));
+    }
+
     println!("[DEBUG] Recibida solicitud CREATE para IP: {}", payload.ip_address);
     let clave_windows = crypto::encrypt_opt(&payload.clave_windows);
     let clave_vnc = crypto::encrypt_opt(&payload.clave_vnc);
@@ -460,6 +470,11 @@ async fn update_equipo(
     // Admin de área no puede reasignar equipos a otra área
     if !is_global_admin(&claims) {
         payload.area = claims.area.clone();
+    }
+
+    // Validar formato de IP
+    if !is_valid_ip(&payload.ip_address) {
+        return Err((StatusCode::BAD_REQUEST, "Formato de dirección IP inválido"));
     }
 
     let clave_windows = crypto::encrypt_opt(&payload.clave_windows);
@@ -651,14 +666,20 @@ async fn scan_network(
         }
     } else {
         // Scan masivo: filtrar por área
-        let query_str = if is_global_admin(&claims) {
-            "SELECT ip_address FROM equipos".to_string()
+        let rows = if is_global_admin(&claims) {
+            sqlx::query("SELECT ip_address FROM equipos")
+                .fetch_all(&state.pool)
+                .await
+                .unwrap_or_default()
         } else if let Some(ref area) = claims.area {
-            format!("SELECT ip_address FROM equipos WHERE area = '{}'", area.replace('\'', "''"))
+            sqlx::query("SELECT ip_address FROM equipos WHERE area = $1")
+                .bind(area)
+                .fetch_all(&state.pool)
+                .await
+                .unwrap_or_default()
         } else {
             return Json(vec![]);
         };
-        let rows = sqlx::query(&query_str).fetch_all(&state.pool).await.unwrap_or_default();
         rows.into_iter().map(|r| r.get::<String, _>("ip_address")).collect()
     };
 
@@ -899,5 +920,90 @@ async fn delete_user(
     match sqlx::query("DELETE FROM users WHERE id = $1").bind(id).execute(&state.pool).await {
         Ok(_) => Ok(StatusCode::OK),
         Err(_) => Ok(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ip_validation() {
+        assert!(is_valid_ip("192.168.1.1"));
+        assert!(is_valid_ip("10.0.0.254"));
+        assert!(is_valid_ip("2001:db8::1"));
+        assert!(is_valid_ip("  172.16.0.5  ")); // con espacios
+
+        assert!(!is_valid_ip("256.256.256.256"));
+        assert!(!is_valid_ip("192.168.1."));
+        assert!(!is_valid_ip("not_an_ip"));
+        assert!(!is_valid_ip(""));
+    }
+
+    #[test]
+    fn test_is_global_admin() {
+        let global_admin = Claims {
+            sub: "admin".to_string(),
+            exp: 0,
+            role: "admin".to_string(),
+            area: None,
+            user_id: 1,
+        };
+        let area_admin = Claims {
+            sub: "sub_admin".to_string(),
+            exp: 0,
+            role: "admin".to_string(),
+            area: Some("SUB6".to_string()),
+            user_id: 2,
+        };
+        let viewer = Claims {
+            sub: "viewer".to_string(),
+            exp: 0,
+            role: "viewer".to_string(),
+            area: None,
+            user_id: 3,
+        };
+
+        assert!(is_global_admin(&global_admin));
+        assert!(!is_global_admin(&area_admin));
+        assert!(!is_global_admin(&viewer));
+    }
+
+    #[test]
+    fn test_can_access_area() {
+        let global_admin = Claims {
+            sub: "admin".to_string(),
+            exp: 0,
+            role: "admin".to_string(),
+            area: None,
+            user_id: 1,
+        };
+        let sub6_admin = Claims {
+            sub: "sub6_admin".to_string(),
+            exp: 0,
+            role: "admin".to_string(),
+            area: Some("SUB6".to_string()),
+            user_id: 2,
+        };
+        let viewer_no_area = Claims {
+            sub: "viewer".to_string(),
+            exp: 0,
+            role: "viewer".to_string(),
+            area: None,
+            user_id: 3,
+        };
+
+        // Admin global accede a todo
+        assert!(can_access_area(&global_admin, &Some("SUB6".to_string())));
+        assert!(can_access_area(&global_admin, &None));
+
+        // Admin de área accede solo a su área
+        assert!(can_access_area(&sub6_admin, &Some("SUB6".to_string())));
+        assert!(!can_access_area(&sub6_admin, &Some("SUB5".to_string())));
+        assert!(!can_access_area(&sub6_admin, &None));
+
+        // Usuario sin área no accede a nada
+        assert!(!can_access_area(&viewer_no_area, &Some("SUB6".to_string())));
+        assert!(!can_access_area(&viewer_no_area, &None));
     }
 }

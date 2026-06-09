@@ -80,3 +80,56 @@ fn calculate_diff(antes: &Value, despues: &Value) -> (Value, Value) {
 
     (Value::Object(map_a), Value::Object(map_d))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_redact_sensitive() {
+        let input = json!({
+            "ip_address": "192.168.1.1",
+            "clave_windows": "secret123",
+            "clave_vnc": "vncpasswd",
+            "usuario_windows": "admin",
+            "tipo": "PLC"
+        });
+        let redacted = redact_sensitive(input);
+        assert_eq!(redacted["ip_address"], "192.168.1.1");
+        assert_eq!(redacted["clave_windows"], "[CIFRADO]");
+        assert_eq!(redacted["clave_vnc"], "[CIFRADO]");
+        assert_eq!(redacted["usuario_windows"], "[CIFRADO]");
+        assert_eq!(redacted["tipo"], "PLC");
+    }
+
+    #[test]
+    fn test_calculate_diff() {
+        let antes = json!({
+            "ip_address": "192.168.1.1",
+            "clave_windows": "secret123",
+            "tipo": "PLC",
+            "nombre_pc": "PLC-01"
+        });
+        let despues = json!({
+            "ip_address": "192.168.1.1",
+            "clave_windows": "secret456", // Cambió
+            "tipo": "HMI",                // Cambió
+            "nombre_pc": "PLC-01"
+        });
+
+        let (diff_a, diff_d) = calculate_diff(&antes, &despues);
+
+        // Clave windows cambió, debe ser [CIFRADO] en ambos lados del diff
+        assert_eq!(diff_a["clave_windows"], "[CIFRADO]");
+        assert_eq!(diff_d["clave_windows"], "[CIFRADO]");
+
+        // Tipo cambió, debe reflejar el valor real
+        assert_eq!(diff_a["tipo"], "PLC");
+        assert_eq!(diff_d["tipo"], "HMI");
+
+        // ip_address y nombre_pc no cambiaron, no deben estar en el diff
+        assert!(diff_a.get("ip_address").is_none());
+        assert!(diff_d.get("nombre_pc").is_none());
+    }
+}
